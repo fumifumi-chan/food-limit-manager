@@ -70,6 +70,7 @@
     <script>
       const API =
         "https://script.google.com/macros/s/AKfycbw8qNC_5N97lnovPQOG2GeoRRG4a4t6Rwl2INOb8Lu12IHq6g6d2nCIlCqI02aWfLeeLg/exec";
+      const KEY = "x8KpT2F7mH6z9NqJ5Cw4YB3Z0sE1LrOaDVXcIikUuStQyRdbGMnhPeWfAj";
 
       function app() {
         return {
@@ -85,26 +86,32 @@
           items: [],
 
           async load() {
-            const res = await fetch(API);
-            this.items = await res.json();
+            const res = await fetch(`${API}?key=${KEY}`);
+            const data = await res.json();
+
+            // スプレッドシート上はカンマ区切りでタグが保存されているため合わせて整形
+            this.items = data.map((item) => ({
+              ...item,
+              tags:
+                typeof item.tags === "string"
+                  ? item.tags.split(",").filter(Boolean)
+                  : item.tags,
+            }));
           },
 
           async add() {
             if (!this.form.name || !this.form.expiry) return;
 
-            await fetch(
-              API +
-                "?key=x8KpT2F7mH6z9NqJ5Cw4YB3Z0sE1LrOaDVXcIikUuStQyRdbGMnhPeWfAj",
-              {
-                method: "POST",
-                body: JSON.stringify({
-                  name: this.form.name,
-                  expiry: this.form.expiry,
-                  tags: this.form.tags.split(" ").filter(Boolean),
-                  ignore: this.form.ignore,
-                }),
-              },
-            );
+            // カンマ区切りで保存
+            await fetch(`${API}?key=${KEY}`, {
+              method: "POST",
+              body: JSON.stringify({
+                name: this.form.name,
+                expiry: this.form.expiry,
+                tags: this.form.tags.split(",").filter(Boolean),
+                ignore: this.form.ignore,
+              }),
+            });
 
             this.form = { name: "", expiry: "", tags: "", ignore: false };
             await this.load();
