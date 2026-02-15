@@ -18,6 +18,13 @@
     <header>賞味期限管理</header>
 
     <main>
+      <!-- 読み込み中表示 -->
+      <div x-show="loading" x-transition.opacity class="loading-overlay">
+        <div class="loading-box">
+          <div class="spinner"></div>
+          <p>読み込み中...</p>
+        </div>
+      </div>
       <!-- 入力フォーム -->
       <div class="card">
         <h3>追加</h3>
@@ -85,37 +92,51 @@
 
           items: [],
 
-          async load() {
-            const res = await fetch(`${API}?key=${KEY}`);
-            const data = await res.json();
+          loading: false,
 
-            // スプレッドシート上はカンマ区切りでタグが保存されているため合わせて整形
-            this.items = data.map((item) => ({
-              ...item,
-              expiry: this.formatDateOnly(item.expiry),
-              tags:
-                typeof item.tags === "string"
-                  ? item.tags.split(",").filter(Boolean)
-                  : item.tags,
-            }));
+          async load() {
+            this.loading = true;
+            try {
+              const res = await fetch(`${API}?key=${KEY}`);
+              const data = await res.json();
+
+              // スプレッドシート上はカンマ区切りでタグが保存されているため合わせて整形
+              this.items = data.map((item) => ({
+                ...item,
+                expiry: this.formatDateOnly(item.expiry),
+                tags:
+                  typeof item.tags === "string"
+                    ? item.tags.split(",").filter(Boolean)
+                    : item.tags,
+              }));
+            } catch (e) {
+              alert("通信に失敗しました。もう一度操作をやり直してください。");
+              console.error(e);
+            } finally {
+              this.loading = false;
+            }
           },
 
           async add() {
             if (!this.form.name || !this.form.expiry) return;
 
-            // カンマ区切りで保存
-            await fetch(`${API}?key=${KEY}`, {
-              method: "POST",
-              body: JSON.stringify({
-                name: this.form.name,
-                expiry: this.form.expiry,
-                tags: this.form.tags.split(",").filter(Boolean),
-                ignore: this.form.ignore,
-              }),
-            });
-
-            this.form = { name: "", expiry: "", tags: "", ignore: false };
-            await this.load();
+            this.loading = true;
+            try {
+              // カンマ区切りで保存
+              await fetch(`${API}?key=${KEY}`, {
+                method: "POST",
+                body: JSON.stringify({
+                  name: this.form.name,
+                  expiry: this.form.expiry,
+                  tags: this.form.tags.split(",").filter(Boolean),
+                  ignore: this.form.ignore,
+                }),
+              });
+              this.form = { name: "", expiry: "", tags: "", ignore: false };
+              await this.load();
+            } finally {
+              this.loading = false;
+            }
           },
 
           isExpired(item) {
