@@ -53,8 +53,6 @@
           <label>猶予日数（必要な場合のみ変更）</label>
           <input type="number" x-model.number="graceDays" />
 
-          <!-- デバッグ表示 -->
-          <pre x-text="JSON.stringify({category, graceDays}, null, 2)"></pre>
           <button @click="submit()">追加</button>
         </div>
       </div>
@@ -69,13 +67,10 @@
         <template x-for="item in items" :key="item.id">
           <div class="item" :class="{ expired: isExpired(item) }">
             <strong x-text="item.name"></strong>
-            <div>期限：<span x-text="item.expireDate"></span></div>
-
-            <!-- <div>
-              <template x-for="tag in item.category">
-                <span class="tag" x-text="tag"></span>
-              </template>
-            </div> -->
+            <div>
+              期限：<span x-text="item.expireDate"></span>
+              <span class="tag" x-text="item.category"></span>
+            </div>
 
             <!-- <div x-show="item.ignore" style="color: #ef4444; font-size: 12px">
               ※期限切れ許容
@@ -118,14 +113,11 @@
                 r.json(),
               );
 
-              // スプレッドシート上はカンマ区切りでタグが保存されているため合わせて整形
+              // 日付をYYYY-MM-DD形式にしてから保存
               this.items = data.map((item) => ({
                 ...item,
                 expireDate: this.formatDateOnly(item.expiry),
                 category: item.category,
-                // typeof item.category === 'string'
-                //   ? item.category.split(',').filter(Boolean)
-                //   : item.category,
               }));
             } catch (e) {
               alert('通信に失敗しました。もう一度操作をやり直してください。');
@@ -141,14 +133,14 @@
               console.log(payload);
               await fetch(`${API}?key=${KEY}`, {
                 method: 'POST',
-                // body: JSON.stringify(payload),
                 body: JSON.stringify({
                   name: payload.name,
                   expireDate: payload.expireDate,
-                  // category: payload.category.split(',').filter(Boolean),
                   category: payload.category,
                   graceDays: payload.graceDays,
                 }),
+                // CORSエラー対策
+                // NOTE: headersを指定しなくても、勝手にヘッダがついて引っかかる模様
                 mode: 'no-cors',
               });
               await this.loadData();
@@ -157,6 +149,7 @@
             }
           },
 
+          // 賞味期限切れかどうか
           isExpired(item) {
             return new Date(item.expiry) < new Date();
           },
