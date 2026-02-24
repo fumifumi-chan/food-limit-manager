@@ -110,7 +110,7 @@
                 ※期限切れ許容
               </div> -->
             <div>
-              期限：<span x-text="formatDate(item.expireDate)"></span>
+              期限：<span x-text="item.expireDate"></span>
               <span class="tag" x-text="item.category"></span>
             </div>
           </div>
@@ -160,7 +160,7 @@
                   const d = new Date(item.expireDate);
                   return {
                     ...item,
-                    expireDate: isNaN(d) ? '' : d.toISOString().slice(0, 10),
+                    expireDate: isNaN(d) ? '' : this.formatDate(d),
                     category: item.category,
                   };
                 })
